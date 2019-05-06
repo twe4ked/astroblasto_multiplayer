@@ -1,0 +1,11 @@
+[package]
+name = "astroblasto_multiplayer"
+version = "0.1.0"
+authors = ["Odin Dutton <odindutton@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+ggez = "0.5.0-rc.2"
+rand = "0.6"
+nalgebra = "*"
+mint = "*"
