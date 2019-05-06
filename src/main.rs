@@ -1,11 +1,6 @@
 //! An Asteroids-ish example game to show off ggez.
 //! The idea is that this game is simple but still
 //! non-trivial enough to be interesting.
-
-extern crate ggez;
-extern crate nalgebra;
-extern crate rand;
-
 use ggez::audio;
 use ggez::audio::SoundSource;
 use ggez::conf;
@@ -431,7 +426,7 @@ fn print_instructions() {
     println!("L/R arrow keys rotate your ship, up thrusts, space bar fires");
     println!();
 }
-extern crate mint;
+
 fn draw_actor(
     assets: &mut Assets,
     ctx: &mut Context,
