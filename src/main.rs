@@ -228,15 +228,12 @@ fn world_to_audio_coords(screen_width: f32, screen_height: f32, point: Point2) -
 
 /// **********************************************************************
 /// So that was the real meat of our game.  Now we just need a structure
-/// to contain the images, sounds, etc. that we need to hang on to; this
+/// to contain the fonts, sounds, etc. that we need to hang on to; this
 /// is our "asset management system".  All the file names and such are
 /// just hard-coded.
 /// **********************************************************************
 
 struct Assets {
-    player_image: graphics::Image,
-    shot_image: graphics::Image,
-    rock_image: graphics::Image,
     font: graphics::Font,
     // Todo: add a music track to show non-spatial audio?
     shot_sound: audio::SpatialSource,
@@ -245,9 +242,6 @@ struct Assets {
 
 impl Assets {
     fn new(ctx: &mut Context) -> GameResult<Assets> {
-        let player_image = graphics::Image::new(ctx, "/player.png")?;
-        let shot_image = graphics::Image::new(ctx, "/shot.png")?;
-        let rock_image = graphics::Image::new(ctx, "/rock.png")?;
         let font = graphics::Font::new(ctx, "/DejaVuSansMono.ttf")?;
 
         let mut shot_sound = audio::SpatialSource::new(ctx, "/pew.ogg")?;
@@ -257,21 +251,10 @@ impl Assets {
         hit_sound.set_ears([-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
 
         Ok(Assets {
-            player_image,
-            shot_image,
-            rock_image,
             font,
             shot_sound,
             hit_sound,
         })
-    }
-
-    fn actor_image(&mut self, actor: &Actor) -> &mut graphics::Image {
-        match actor.tag {
-            ActorType::Player => &mut self.player_image,
-            ActorType::Rock => &mut self.rock_image,
-            ActorType::Shot => &mut self.shot_image,
-        }
     }
 }
 
@@ -427,20 +410,66 @@ fn print_instructions() {
     println!();
 }
 
-fn draw_actor(
-    assets: &mut Assets,
-    ctx: &mut Context,
-    actor: &Actor,
-    world_coords: (f32, f32),
-) -> GameResult {
+fn draw_actor(ctx: &mut Context, actor: &Actor, world_coords: (f32, f32)) -> GameResult {
     let (screen_w, screen_h) = world_coords;
     let pos = world_to_screen_coords(screen_w, screen_h, actor.pos);
-    let image = assets.actor_image(actor);
     let drawparams = graphics::DrawParam::new()
         .dest(pos)
         .rotation(actor.facing as f32)
         .offset(Point2::new(0.5, 0.5));
-    graphics::draw(ctx, image, drawparams)
+    let mut mesh: graphics::Mesh;
+
+    match actor.tag {
+        ActorType::Player => {
+            mesh = graphics::Mesh::new_line(
+                ctx,
+                &[
+                    na::Point2::new(0.0, -10.0),
+                    na::Point2::new(8.0, 10.0),
+                    na::Point2::new(0.0, 8.0),
+                    na::Point2::new(-8.0, 10.0),
+                    na::Point2::new(0.0, -10.0),
+                ],
+                1.0,
+                graphics::WHITE,
+            )
+            .unwrap();
+        }
+        ActorType::Rock => {
+            mesh = graphics::Mesh::new_line(
+                ctx,
+                &[
+                    na::Point2::new(0.0, -10.0),
+                    na::Point2::new(8.0, -2.0),
+                    na::Point2::new(5.0, 10.0),
+                    na::Point2::new(-5.0, 10.0),
+                    na::Point2::new(-8.0, -2.0),
+                    na::Point2::new(0.0, -10.0),
+                ],
+                1.0,
+                graphics::WHITE,
+            )
+            .unwrap();
+        }
+        ActorType::Shot => {
+            mesh = graphics::Mesh::new_line(
+                ctx,
+                &[
+                    na::Point2::new(0.0, -5.0),
+                    na::Point2::new(4.0, -1.0),
+                    na::Point2::new(2.5, 5.0),
+                    na::Point2::new(-2.5, 5.0),
+                    na::Point2::new(-4.0, -1.0),
+                    na::Point2::new(0.0, -5.0),
+                ],
+                1.0,
+                graphics::WHITE,
+            )
+            .unwrap();
+        }
+    }
+
+    graphics::draw(ctx, &mesh, drawparams)
 }
 
 /// **********************************************************************
@@ -513,18 +542,17 @@ impl EventHandler for MainState {
 
         // Loop over all objects drawing them...
         {
-            let assets = &mut self.assets;
             let coords = (self.screen_width, self.screen_height);
 
             let p = &self.player;
-            draw_actor(assets, ctx, p, coords)?;
+            draw_actor(ctx, p, coords)?;
 
             for s in &self.shots {
-                draw_actor(assets, ctx, s, coords)?;
+                draw_actor(ctx, s, coords)?;
             }
 
             for r in &self.rocks {
-                draw_actor(assets, ctx, r, coords)?;
+                draw_actor(ctx, r, coords)?;
             }
         }
 
