@@ -255,8 +255,6 @@ pub struct MainState {
 
 impl MainState {
     pub fn new(ctx: &mut Context) -> GameResult<MainState> {
-        println!("Game resource path: {:?}", ctx.filesystem);
-
         print_instructions();
 
         let assets = Assets::new(ctx)?;
