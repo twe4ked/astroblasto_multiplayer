@@ -7,35 +7,23 @@ use ggez::{
 type Point2 = nalgebra::Point2<f32>;
 type Vector2 = nalgebra::Vector2<f32>;
 
-/// *********************************************************************
-/// Basic stuff, make some helpers for vector functions.
-/// ggez includes the nalgebra math library to provide lots of
-/// math stuff  We just add some helpers.
-/// **********************************************************************
-
-/// Create a unit vector representing the
-/// given angle (in radians)
+/// Create a unit vector representing the given angle (in radians).
 fn vec_from_angle(angle: f32) -> Vector2 {
     let vx = angle.sin();
     let vy = angle.cos();
     Vector2::new(vx, vy)
 }
 
-/// Just makes a random `Vector2` with the given max magnitude.
+/// Makes a random `Vector2` with the given max magnitude.
 fn random_vec(max_magnitude: f32) -> Vector2 {
     let angle = rand::random::<f32>() * 2.0 * std::f32::consts::PI;
     let mag = rand::random::<f32>() * max_magnitude;
     vec_from_angle(angle) * (mag)
 }
 
-/// *********************************************************************
-/// Now we define our Actor's.
-/// An Actor is anything in the game world.
-/// We're not *quite* making a real entity-component system but it's
-/// pretty close.  For a more complicated game you would want a
-/// real ECS, but for this it's enough to say that all our game objects
-/// contain pretty much the same data.
-/// **********************************************************************
+// An Actor is anything in the game world. We're not *quite* making a real entity-component system
+// but it's pretty close. For a more complicated game you would want a real ECS, but for this it's
+// enough to say that all our game objects contain pretty much the same data.
 #[derive(Debug)]
 enum ActorType {
     Player,
@@ -52,10 +40,8 @@ struct Actor {
     ang_vel: f32,
     bbox_size: f32,
 
-    // I am going to lazily overload "life" with a
-    // double meaning:
-    // for shots, it is the time left to live,
-    // for players and rocks, it is the actual hit points.
+    // Lazily overload "life" with a double meaning: for shots, it is the time left to live, for
+    // players and rocks, it is the actual hit points.
     life: f32,
 }
 
@@ -68,10 +54,6 @@ const ROCK_BBOX: f32 = 12.0;
 const SHOT_BBOX: f32 = 6.0;
 
 const MAX_ROCK_VEL: f32 = 50.0;
-
-/// *********************************************************************
-/// Now we have some constructor functions for different game objects.
-/// **********************************************************************
 
 fn create_player() -> Actor {
     Actor {
@@ -109,12 +91,9 @@ fn create_shot() -> Actor {
     }
 }
 
-/// Create the given number of rocks.
-/// Makes sure that none of them are within the
-/// given exclusion zone (nominally the player)
-/// Note that this *could* create rocks outside the
-/// bounds of the playing field, so it should be
-/// called before `wrap_actor_position()` happens.
+/// Create the given number of rocks. Makes sure that none of them are within the given exclusion
+/// zone (nominally the player). Note that this *could* create rocks outside the bounds of the
+/// playing field, so it should be called before `wrap_actor_position()` happens.
 fn create_rocks(num: i32, exclusion: Point2, min_radius: f32, max_radius: f32) -> Vec<Actor> {
     assert!(max_radius > min_radius);
     let new_rock = |_| {
@@ -128,15 +107,12 @@ fn create_rocks(num: i32, exclusion: Point2, min_radius: f32, max_radius: f32) -
     (0..num).map(new_rock).collect()
 }
 
-/// *********************************************************************
-/// Now we make functions to handle physics.  We do simple Newtonian
-/// physics (so we do have inertia), and cap the max speed so that we
-/// don't have to worry too much about small objects clipping through
-/// each other.
-///
-/// Our unit of world space is simply pixels, though we do transform
-/// the coordinate system so that +y is up and -y is down.
-/// **********************************************************************
+// Now we make functions to handle physics. We do simple Newtonian physics (so we do have
+// inertia), and cap the max speed so that we don't have to worry too much about small objects
+// clipping through each other.
+//
+// Our unit of world space is simply pixels, though we do transform the coordinate system so that
+// +y is up and -y is down.
 
 const SHOT_SPEED: f32 = 200.0;
 const SHOT_ANG_VEL: f32 = 0.1;
@@ -145,7 +121,7 @@ const SHOT_ANG_VEL: f32 = 0.1;
 const PLAYER_THRUST: f32 = 100.0;
 // Rotation in radians per second.
 const PLAYER_TURN_RATE: f32 = 3.0;
-// Seconds between shots
+// Seconds between shots.
 const PLAYER_SHOT_TIME: f32 = 0.5;
 
 fn player_handle_input(actor: &mut Actor, input: &InputState, dt: f32) {
@@ -165,7 +141,7 @@ fn player_thrust(actor: &mut Actor, dt: f32) {
 const MAX_PHYSICS_VEL: f32 = 250.0;
 
 fn update_actor_position(actor: &mut Actor, dt: f32) {
-    // Clamp the velocity to the max efficiently
+    // Clamp the velocity to the max efficiently.
     let norm_sq = actor.velocity.norm_squared();
     if norm_sq > MAX_PHYSICS_VEL.powi(2) {
         actor.velocity = actor.velocity / norm_sq.sqrt() * MAX_PHYSICS_VEL;
@@ -175,11 +151,10 @@ fn update_actor_position(actor: &mut Actor, dt: f32) {
     actor.facing += actor.ang_vel;
 }
 
-/// Takes an actor and wraps its position to the bounds of the
-/// screen, so if it goes off the left side of the screen it
-/// will re-enter on the right side and so on.
+/// Takes an actor and wraps its position to the bounds of the screen, so if it goes off the left
+/// side of the screen it will re-enter on the right side and so on.
 fn wrap_actor_position(actor: &mut Actor, sx: f32, sy: f32) {
-    // Wrap screen
+    // Wrap screen.
     let screen_x_bounds = sx / 2.0;
     let screen_y_bounds = sy / 2.0;
     if actor.pos.x > screen_x_bounds {
@@ -198,18 +173,15 @@ fn handle_timed_life(actor: &mut Actor, dt: f32) {
     actor.life -= dt;
 }
 
-/// Translates the world coordinate system, which
-/// has Y pointing up and the origin at the center,
-/// to the screen coordinate system, which has Y
-/// pointing downward and the origin at the top-left,
+/// Translates the world coordinate system, which has Y pointing up and the origin at the center,
+/// to the screen coordinate system, which has Y pointing downward and the origin at the top-left.
 fn world_to_screen_coords(screen_width: f32, screen_height: f32, point: Point2) -> Point2 {
     let x = point.x + screen_width / 2.0;
     let y = screen_height - (point.y + screen_height / 2.0);
     Point2::new(x, y)
 }
 
-/// Translates the world coordinate system to
-/// coordinates suitable for the audio system.
+/// Translates the world coordinate system to coordinates suitable for the audio system.
 fn world_to_audio_coords(screen_width: f32, screen_height: f32, point: Point2) -> [f32; 3] {
     let x = point.x * 2.0 / screen_width;
     let y = point.y * 2.0 / screen_height;
@@ -217,16 +189,10 @@ fn world_to_audio_coords(screen_width: f32, screen_height: f32, point: Point2) -
     [x, y, z]
 }
 
-/// **********************************************************************
-/// So that was the real meat of our game.  Now we just need a structure
-/// to contain the fonts, sounds, etc. that we need to hang on to; this
-/// is our "asset management system".  All the file names and such are
-/// just hard-coded.
-/// **********************************************************************
-
+/// A structure to contain the fonts, sounds, etc. that we need to hang on to; this is our "asset
+/// management system".  All the file names and such are just hard-coded.
 struct Assets {
     font: graphics::Font,
-    // Todo: add a music track to show non-spatial audio?
     shot_sound: audio::SpatialSource,
     hit_sound: audio::SpatialSource,
 }
@@ -249,11 +215,8 @@ impl Assets {
     }
 }
 
-/// **********************************************************************
-/// The `InputState` is exactly what it sounds like, it just keeps track of
-/// the user's input state so that we turn keyboard events into something
-/// state-based and device-independent.
-/// **********************************************************************
+/// The `InputState` is exactly what it sounds like, it just keeps track of the user's input state
+/// so that we turn keyboard events into something state-based and device-independent.
 #[derive(Debug)]
 struct InputState {
     xaxis: f32,
@@ -271,17 +234,12 @@ impl Default for InputState {
     }
 }
 
-/// **********************************************************************
-/// Now we're getting into the actual game loop.  The `MainState` is our
-/// game's "global" state, it keeps track of everything we need for
-/// actually running the game.
+/// Now we're getting into the actual game loop. The `MainState` is our game's "global" state, it
+/// keeps track of everything we need for actually running the game.
 ///
-/// Our game objects are simply a vector for each actor type, and we
-/// probably mingle gameplay-state (like score) and hardware-state
-/// (like `input`) a little more than we should, but for something
+/// Our game objects are simply a vector for each actor type, and we probably mingle gameplay-state
+/// (like score) and hardware-state (like `input`) a little more than we should, but for something
 /// this small it hardly matters.
-/// **********************************************************************
-
 pub struct MainState {
     player: Actor,
     shots: Vec<Actor>,
@@ -388,10 +346,6 @@ impl MainState {
     // }
 }
 
-/// **********************************************************************
-/// A couple of utility functions.
-/// **********************************************************************
-
 fn print_instructions() {
     println!();
     println!("Welcome to ASTROBLASTO!");
@@ -460,11 +414,8 @@ fn draw_actor(ctx: &mut Context, actor: &Actor, world_coords: (f32, f32)) -> Gam
     graphics::draw(ctx, &mesh, drawparams)
 }
 
-/// **********************************************************************
-/// Now we implement the `EventHandler` trait from `ggez::event`, which provides
-/// ggez with callbacks for updating and drawing our game, as well as
-/// handling input events.
-/// **********************************************************************
+/// Now we implement the `EventHandler` trait from `ggez::event`, which provides ggez with
+/// callbacks for updating and drawing our game, as well as handling input events.
 impl EventHandler for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         const DESIRED_FPS: u32 = 60;
@@ -480,7 +431,6 @@ impl EventHandler for MainState {
             }
 
             // Update the physics for all actors.
-            // First the player...
             update_actor_position(&mut self.player, seconds);
             wrap_actor_position(
                 &mut self.player,
@@ -488,32 +438,25 @@ impl EventHandler for MainState {
                 self.screen_height as f32,
             );
 
-            // Then the shots...
             for act in &mut self.shots {
                 update_actor_position(act, seconds);
                 wrap_actor_position(act, self.screen_width as f32, self.screen_height as f32);
                 handle_timed_life(act, seconds);
             }
 
-            // And finally the rocks.
             for act in &mut self.rocks {
                 update_actor_position(act, seconds);
                 wrap_actor_position(act, self.screen_width as f32, self.screen_height as f32);
             }
 
             // Handle the results of things moving:
-            // collision detection, object death, and if
-            // we have killed all the rocks in the level,
-            // spawn more of them.
+            //
+            // collision detection, object death, and if we have killed all the rocks in the level, spawn more of them.
             self.handle_collisions();
-
             self.clear_dead_stuff();
-
             self.check_for_level_respawn();
 
             // Finally we check for our end state.
-            // I want to have a nice death screen eventually,
-            // but for now we just quit.
             if self.player.life <= 0.0 {
                 println!("Game over!");
                 let _ = ggez::quit(ctx);
@@ -524,11 +467,10 @@ impl EventHandler for MainState {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        // Our drawing is quite simple.
-        // Just clear the screen...
+        // Clear the screen...
         graphics::clear(ctx, graphics::BLACK);
 
-        // Loop over all objects drawing them...
+        // Loop over all objects drawing them.
         {
             let coords = (self.screen_width, self.screen_height);
 
@@ -544,7 +486,7 @@ impl EventHandler for MainState {
             }
         }
 
-        // And draw the GUI elements in the right places.
+        // Draw the GUI elements in the right places.
         let level_dest = Point2::new(10.0, 10.0);
         let score_dest = Point2::new(200.0, 10.0);
 
@@ -555,21 +497,19 @@ impl EventHandler for MainState {
         graphics::draw(ctx, &level_display, (level_dest, 0.0, graphics::WHITE))?;
         graphics::draw(ctx, &score_display, (score_dest, 0.0, graphics::WHITE))?;
 
-        // Then we flip the screen...
+        // Then we flip the screen.
         graphics::present(ctx)?;
 
-        // And yield the timeslice
-        // This tells the OS that we're done using the CPU but it should
-        // get back to this program as soon as it can.
-        // This ideally prevents the game from using 100% CPU all the time
-        // even if vsync is off.
-        // The actual behavior can be a little platform-specific.
+        // Yield the timeslice.
+        //
+        // This tells the OS that we're done using the CPU but it should get back to this program
+        // as soon as it can. This ideally prevents the game from using 100% CPU all the time even
+        // if vsync is off. The actual behavior can be a little platform-specific.
         timer::yield_now();
         Ok(())
     }
 
-    // Handle key events.  These just map keyboard events
-    // and alter our input state appropriately.
+    // Handle key events. These just map keyboard events and alter our input state appropriately.
     fn key_down_event(
         &mut self,
         ctx: &mut Context,
@@ -596,7 +536,7 @@ impl EventHandler for MainState {
                     .expect("Could not save screenshot");
             }
             KeyCode::Escape => ggez::quit(ctx),
-            _ => (), // Do nothing
+            _ => (),
         }
     }
 
@@ -611,7 +551,7 @@ impl EventHandler for MainState {
             KeyCode::Space => {
                 self.input.fire = false;
             }
-            _ => (), // Do nothing
+            _ => (),
         }
     }
 }
