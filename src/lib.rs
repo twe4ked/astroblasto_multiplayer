@@ -4,8 +4,8 @@ use ggez::{
     graphics, nalgebra as na, timer, Context, GameResult,
 };
 
-type Point2 = nalgebra::Point2<f32>;
-type Vector2 = nalgebra::Vector2<f32>;
+type Point2 = na::Point2<f32>;
+type Vector2 = na::Vector2<f32>;
 
 /// Create a unit vector representing the given angle (in radians).
 fn vec_from_angle(angle: f32) -> Vector2 {
