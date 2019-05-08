@@ -316,7 +316,8 @@ impl EventHandler for MainState {
 
             // Handle the results of things moving:
             //
-            // collision detection, object death, and if we have killed all the rocks in the level, spawn more of them.
+            // collision detection, object death, and if we have killed all the rocks in the level,
+            // spawn more of them.
             self.handle_collisions();
             self.clear_dead_stuff();
             self.check_for_level_respawn();

@@ -12,8 +12,8 @@ use std::path;
 /// **********************************************************************
 
 fn main() -> GameResult {
-    // We add the CARGO_MANIFEST_DIR/resources to the resource paths
-    // so that ggez will look in our cargo project directory for files.
+    // We add the CARGO_MANIFEST_DIR/resources to the resource paths so that ggez will look in our
+    // cargo project directory for files.
     let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
         let mut path = path::PathBuf::from(manifest_dir);
         path.push("resources");
