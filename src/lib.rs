@@ -107,14 +107,6 @@ fn handle_timed_life(actor: &mut Actor, dt: f32) {
     actor.life -= dt;
 }
 
-/// Translates the world coordinate system, which has Y pointing up and the origin at the center,
-/// to the screen coordinate system, which has Y pointing downward and the origin at the top-left.
-fn world_to_screen_coords(screen_width: f32, screen_height: f32, point: Point2) -> Point2 {
-    let x = point.x + screen_width / 2.0;
-    let y = screen_height - (point.y + screen_height / 2.0);
-    Point2::new(x, y)
-}
-
 /// Translates the world coordinate system to coordinates suitable for the audio system.
 fn world_to_audio_coords(screen_width: f32, screen_height: f32, point: Point2) -> [f32; 3] {
     let x = point.x * 2.0 / screen_width;
@@ -287,18 +279,6 @@ fn print_instructions() {
     println!("L/R arrow keys rotate your ship, up thrusts, space bar fires");
 }
 
-fn draw_actor(ctx: &mut Context, actor: &Actor, world_coords: (f32, f32)) -> GameResult {
-    let (screen_w, screen_h) = world_coords;
-    let pos = world_to_screen_coords(screen_w, screen_h, actor.pos);
-    let drawparams = graphics::DrawParam::new()
-        .dest(pos)
-        .rotation(actor.facing as f32)
-        .offset(Point2::new(0.5, 0.5));
-    let mesh = actor.polygon(ctx);
-
-    graphics::draw(ctx, &mesh, drawparams)
-}
-
 /// Now we implement the `EventHandler` trait from `ggez::event`, which provides ggez with
 /// callbacks for updating and drawing our game, as well as handling input events.
 impl EventHandler for MainState {
@@ -360,14 +340,14 @@ impl EventHandler for MainState {
             let coords = (self.screen_width, self.screen_height);
 
             let p = &self.player;
-            draw_actor(ctx, p, coords)?;
+            p.draw_actor(ctx, coords)?;
 
             for s in &self.shots {
-                draw_actor(ctx, s, coords)?;
+                s.draw_actor(ctx, coords)?;
             }
 
             for r in &self.rocks {
-                draw_actor(ctx, r, coords)?;
+                r.draw_actor(ctx, coords)?;
             }
         }
 

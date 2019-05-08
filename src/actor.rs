@@ -1,5 +1,5 @@
 use crate::{Point2, Vector2};
-use ggez::{graphics, nalgebra as na, Context};
+use ggez::{graphics, nalgebra as na, Context, GameResult};
 
 const PLAYER_LIFE: f32 = 1.0;
 const SHOT_LIFE: f32 = 2.0;
@@ -113,5 +113,25 @@ impl Actor {
             bbox_size: SHOT_BBOX,
             life: SHOT_LIFE,
         }
+    }
+
+    pub fn draw_actor(&self, ctx: &mut Context, world_coords: (f32, f32)) -> GameResult {
+        let (screen_w, screen_h) = world_coords;
+        let pos = Self::world_to_screen_coords(screen_w, screen_h, self.pos);
+        let drawparams = graphics::DrawParam::new()
+            .dest(pos)
+            .rotation(self.facing as f32)
+            .offset(Point2::new(0.5, 0.5));
+        let mesh = self.polygon(ctx);
+
+        graphics::draw(ctx, &mesh, drawparams)
+    }
+
+    /// Translates the world coordinate system, which has Y pointing up and the origin at the center,
+    /// to the screen coordinate system, which has Y pointing downward and the origin at the top-left.
+    fn world_to_screen_coords(screen_width: f32, screen_height: f32, point: Point2) -> Point2 {
+        let x = point.x + screen_width / 2.0;
+        let y = screen_height - (point.y + screen_height / 2.0);
+        Point2::new(x, y)
     }
 }
