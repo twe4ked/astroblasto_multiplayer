@@ -6,11 +6,6 @@ use ggez::{conf, event, ContextBuilder, GameResult};
 use std::env;
 use std::path;
 
-/// **********************************************************************
-/// Finally our main function!  Which merely sets up a config and calls
-/// `ggez::event::run()` with our `EventHandler` type.
-/// **********************************************************************
-
 fn main() -> GameResult {
     // We add the CARGO_MANIFEST_DIR/resources to the resource paths so that ggez will look in our
     // cargo project directory for files.
