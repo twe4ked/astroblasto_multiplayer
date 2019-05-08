@@ -1,6 +1,6 @@
 mod actor;
 
-use actor::{Actor, ActorType};
+use actor::Actor;
 use ggez::{
     audio::{self, SoundSource},
     event::{EventHandler, KeyCode, KeyMods},
@@ -24,51 +24,7 @@ fn random_vec(max_magnitude: f32) -> Vector2 {
     vec_from_angle(angle) * (mag)
 }
 
-const PLAYER_LIFE: f32 = 1.0;
-const SHOT_LIFE: f32 = 2.0;
-const ROCK_LIFE: f32 = 1.0;
-
-const PLAYER_BBOX: f32 = 12.0;
-const ROCK_BBOX: f32 = 12.0;
-const SHOT_BBOX: f32 = 6.0;
-
 const MAX_ROCK_VEL: f32 = 50.0;
-
-fn create_player() -> Actor {
-    Actor {
-        tag: ActorType::Player,
-        pos: Point2::origin(),
-        facing: 0.,
-        velocity: na::zero(),
-        ang_vel: 0.,
-        bbox_size: PLAYER_BBOX,
-        life: PLAYER_LIFE,
-    }
-}
-
-fn create_rock() -> Actor {
-    Actor {
-        tag: ActorType::Rock,
-        pos: Point2::origin(),
-        facing: 0.,
-        velocity: na::zero(),
-        ang_vel: 0.,
-        bbox_size: ROCK_BBOX,
-        life: ROCK_LIFE,
-    }
-}
-
-fn create_shot() -> Actor {
-    Actor {
-        tag: ActorType::Shot,
-        pos: Point2::origin(),
-        facing: 0.,
-        velocity: na::zero(),
-        ang_vel: SHOT_ANG_VEL,
-        bbox_size: SHOT_BBOX,
-        life: SHOT_LIFE,
-    }
-}
 
 /// Create the given number of rocks. Makes sure that none of them are within the given exclusion
 /// zone (nominally the player). Note that this *could* create rocks outside the bounds of the
@@ -76,7 +32,7 @@ fn create_shot() -> Actor {
 fn create_rocks(num: i32, exclusion: Point2, min_radius: f32, max_radius: f32) -> Vec<Actor> {
     assert!(max_radius > min_radius);
     let new_rock = |_| {
-        let mut rock = create_rock();
+        let mut rock = Actor::create_rock();
         let r_angle = rand::random::<f32>() * 2.0 * std::f32::consts::PI;
         let r_distance = rand::random::<f32>() * (max_radius - min_radius) + min_radius;
         rock.pos = exclusion + vec_from_angle(r_angle) * r_distance;
@@ -94,7 +50,6 @@ fn create_rocks(num: i32, exclusion: Point2, min_radius: f32, max_radius: f32) -
 // +y is up and -y is down.
 
 const SHOT_SPEED: f32 = 200.0;
-const SHOT_ANG_VEL: f32 = 0.1;
 
 // Acceleration in pixels per second.
 const PLAYER_THRUST: f32 = 100.0;
@@ -240,7 +195,7 @@ impl MainState {
         // let score_disp = graphics::Text::new(ctx, "score", &assets.font)?;
         // let level_disp = graphics::Text::new(ctx, "level", &assets.font)?;
 
-        let player = create_player();
+        let player = Actor::create_player();
         let rocks = create_rocks(5, player.pos, 100.0, 250.0);
 
         let s = MainState {
@@ -263,7 +218,7 @@ impl MainState {
         self.player_shot_timeout = PLAYER_SHOT_TIME;
 
         let player = &self.player;
-        let mut shot = create_shot();
+        let mut shot = Actor::create_shot();
         shot.pos = player.pos;
         shot.facing = player.facing;
         let direction = vec_from_angle(shot.facing);

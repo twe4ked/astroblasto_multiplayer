@@ -1,6 +1,16 @@
 use crate::{Point2, Vector2};
 use ggez::{graphics, nalgebra as na, Context};
 
+const PLAYER_LIFE: f32 = 1.0;
+const SHOT_LIFE: f32 = 2.0;
+const ROCK_LIFE: f32 = 1.0;
+
+const PLAYER_BBOX: f32 = 12.0;
+const ROCK_BBOX: f32 = 12.0;
+const SHOT_BBOX: f32 = 6.0;
+
+const SHOT_ANG_VEL: f32 = 0.1;
+
 // An Actor is anything in the game world. We're not *quite* making a real entity-component system
 // but it's pretty close. For a more complicated game you would want a real ECS, but for this it's
 // enough to say that all our game objects contain pretty much the same data.
@@ -66,6 +76,42 @@ impl Actor {
                 graphics::WHITE,
             )
             .unwrap(),
+        }
+    }
+
+    pub fn create_player() -> Self {
+        Self {
+            tag: ActorType::Player,
+            pos: Point2::origin(),
+            facing: 0.,
+            velocity: na::zero(),
+            ang_vel: 0.,
+            bbox_size: PLAYER_BBOX,
+            life: PLAYER_LIFE,
+        }
+    }
+
+    pub fn create_rock() -> Self {
+        Self {
+            tag: ActorType::Rock,
+            pos: Point2::origin(),
+            facing: 0.,
+            velocity: na::zero(),
+            ang_vel: 0.,
+            bbox_size: ROCK_BBOX,
+            life: ROCK_LIFE,
+        }
+    }
+
+    pub fn create_shot() -> Self {
+        Self {
+            tag: ActorType::Shot,
+            pos: Point2::origin(),
+            facing: 0.,
+            velocity: na::zero(),
+            ang_vel: SHOT_ANG_VEL,
+            bbox_size: SHOT_BBOX,
+            life: SHOT_LIFE,
         }
     }
 }
