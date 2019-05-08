@@ -192,9 +192,6 @@ impl MainState {
         print_instructions();
 
         let assets = Assets::new(ctx)?;
-        // let score_disp = graphics::Text::new(ctx, "score", &assets.font)?;
-        // let level_disp = graphics::Text::new(ctx, "level", &assets.font)?;
-
         let player = Actor::create_player();
         let rocks = create_rocks(5, player.pos, 100.0, 250.0);
 
@@ -267,15 +264,21 @@ impl MainState {
         }
     }
 
-    // fn update_ui(&mut self, ctx: &mut Context) {
-    //     let score_str = format!("Score: {}", self.score);
-    //     let level_str = format!("Level: {}", self.level);
-    //     let score_text = graphics::Text::new(ctx, &score_str, &self.assets.font).unwrap();
-    //     let level_text = graphics::Text::new(ctx, &level_str, &self.assets.font).unwrap();
+    fn draw_ui(&mut self, ctx: &mut Context) -> GameResult {
+        let level_dest = Point2::new(10.0, 10.0);
+        let score_dest = Point2::new(200.0, 10.0);
 
-    //     self.score_display = score_text;
-    //     self.level_display = level_text;
-    // }
+        let level_str = format!("Level: {}", self.level);
+        let score_str = format!("Score: {}", self.score);
+
+        let level_display = graphics::Text::new((level_str, self.assets.font, 32.0));
+        let score_display = graphics::Text::new((score_str, self.assets.font, 32.0));
+
+        graphics::draw(ctx, &level_display, (level_dest, 0.0, graphics::WHITE))?;
+        graphics::draw(ctx, &score_display, (score_dest, 0.0, graphics::WHITE))?;
+
+        Ok(())
+    }
 }
 
 fn print_instructions() {
@@ -368,16 +371,7 @@ impl EventHandler for MainState {
             }
         }
 
-        // Draw the GUI elements in the right places.
-        let level_dest = Point2::new(10.0, 10.0);
-        let score_dest = Point2::new(200.0, 10.0);
-
-        let level_str = format!("Level: {}", self.level);
-        let score_str = format!("Score: {}", self.score);
-        let level_display = graphics::Text::new((level_str, self.assets.font, 32.0));
-        let score_display = graphics::Text::new((score_str, self.assets.font, 32.0));
-        graphics::draw(ctx, &level_display, (level_dest, 0.0, graphics::WHITE))?;
-        graphics::draw(ctx, &score_display, (score_dest, 0.0, graphics::WHITE))?;
+        self.draw_ui(ctx)?;
 
         // Then we flip the screen.
         graphics::present(ctx)?;
