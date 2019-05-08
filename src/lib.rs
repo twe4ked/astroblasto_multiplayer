@@ -345,12 +345,9 @@ impl MainState {
 }
 
 fn print_instructions() {
-    println!();
     println!("Welcome to ASTROBLASTO!");
-    println!();
     println!("How to play:");
     println!("L/R arrow keys rotate your ship, up thrusts, space bar fires");
-    println!();
 }
 
 fn draw_actor(ctx: &mut Context, actor: &Actor, world_coords: (f32, f32)) -> GameResult {
