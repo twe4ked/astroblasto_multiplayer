@@ -1,11 +1,14 @@
+mod actor;
+
+use actor::{Actor, ActorType};
 use ggez::{
     audio::{self, SoundSource},
     event::{EventHandler, KeyCode, KeyMods},
     graphics, nalgebra as na, timer, Context, GameResult,
 };
 
-type Point2 = na::Point2<f32>;
-type Vector2 = na::Vector2<f32>;
+pub type Point2 = na::Point2<f32>;
+pub type Vector2 = na::Vector2<f32>;
 
 /// Create a unit vector representing the given angle (in radians).
 fn vec_from_angle(angle: f32) -> Vector2 {
@@ -19,75 +22,6 @@ fn random_vec(max_magnitude: f32) -> Vector2 {
     let angle = rand::random::<f32>() * 2.0 * std::f32::consts::PI;
     let mag = rand::random::<f32>() * max_magnitude;
     vec_from_angle(angle) * (mag)
-}
-
-// An Actor is anything in the game world. We're not *quite* making a real entity-component system
-// but it's pretty close. For a more complicated game you would want a real ECS, but for this it's
-// enough to say that all our game objects contain pretty much the same data.
-#[derive(Debug)]
-enum ActorType {
-    Player,
-    Rock,
-    Shot,
-}
-
-#[derive(Debug)]
-struct Actor {
-    tag: ActorType,
-    pos: Point2,
-    facing: f32,
-    velocity: Vector2,
-    ang_vel: f32,
-    bbox_size: f32,
-
-    // Lazily overload "life" with a double meaning: for shots, it is the time left to live, for
-    // players and rocks, it is the actual hit points.
-    life: f32,
-}
-
-impl Actor {
-    fn polygon(&self, ctx: &mut Context) -> graphics::Mesh {
-        match self.tag {
-            ActorType::Player => graphics::Mesh::new_polygon(
-                ctx,
-                graphics::DrawMode::stroke(1.0),
-                &[
-                    na::Point2::new(0.0, -10.0),
-                    na::Point2::new(8.0, 10.0),
-                    na::Point2::new(0.0, 8.0),
-                    na::Point2::new(-8.0, 10.0),
-                ],
-                graphics::WHITE,
-            )
-            .unwrap(),
-            ActorType::Rock => graphics::Mesh::new_polygon(
-                ctx,
-                graphics::DrawMode::stroke(1.0),
-                &[
-                    na::Point2::new(0.0, -10.0),
-                    na::Point2::new(8.0, -2.0),
-                    na::Point2::new(5.0, 10.0),
-                    na::Point2::new(-5.0, 10.0),
-                    na::Point2::new(-8.0, -2.0),
-                ],
-                graphics::WHITE,
-            )
-            .unwrap(),
-            ActorType::Shot => graphics::Mesh::new_polygon(
-                ctx,
-                graphics::DrawMode::stroke(1.0),
-                &[
-                    na::Point2::new(0.0, -5.0),
-                    na::Point2::new(4.0, -1.0),
-                    na::Point2::new(2.5, 5.0),
-                    na::Point2::new(-2.5, 5.0),
-                    na::Point2::new(-4.0, -1.0),
-                ],
-                graphics::WHITE,
-            )
-            .unwrap(),
-        }
-    }
 }
 
 const PLAYER_LIFE: f32 = 1.0;
