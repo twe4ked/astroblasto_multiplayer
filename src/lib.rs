@@ -45,6 +45,51 @@ struct Actor {
     life: f32,
 }
 
+impl Actor {
+    fn polygon(&self, ctx: &mut Context) -> graphics::Mesh {
+        match self.tag {
+            ActorType::Player => graphics::Mesh::new_polygon(
+                ctx,
+                graphics::DrawMode::stroke(1.0),
+                &[
+                    na::Point2::new(0.0, -10.0),
+                    na::Point2::new(8.0, 10.0),
+                    na::Point2::new(0.0, 8.0),
+                    na::Point2::new(-8.0, 10.0),
+                ],
+                graphics::WHITE,
+            )
+            .unwrap(),
+            ActorType::Rock => graphics::Mesh::new_polygon(
+                ctx,
+                graphics::DrawMode::stroke(1.0),
+                &[
+                    na::Point2::new(0.0, -10.0),
+                    na::Point2::new(8.0, -2.0),
+                    na::Point2::new(5.0, 10.0),
+                    na::Point2::new(-5.0, 10.0),
+                    na::Point2::new(-8.0, -2.0),
+                ],
+                graphics::WHITE,
+            )
+            .unwrap(),
+            ActorType::Shot => graphics::Mesh::new_polygon(
+                ctx,
+                graphics::DrawMode::stroke(1.0),
+                &[
+                    na::Point2::new(0.0, -5.0),
+                    na::Point2::new(4.0, -1.0),
+                    na::Point2::new(2.5, 5.0),
+                    na::Point2::new(-2.5, 5.0),
+                    na::Point2::new(-4.0, -1.0),
+                ],
+                graphics::WHITE,
+            )
+            .unwrap(),
+        }
+    }
+}
+
 const PLAYER_LIFE: f32 = 1.0;
 const SHOT_LIFE: f32 = 2.0;
 const ROCK_LIFE: f32 = 1.0;
@@ -357,54 +402,7 @@ fn draw_actor(ctx: &mut Context, actor: &Actor, world_coords: (f32, f32)) -> Gam
         .dest(pos)
         .rotation(actor.facing as f32)
         .offset(Point2::new(0.5, 0.5));
-    let mut mesh: graphics::Mesh;
-
-    match actor.tag {
-        ActorType::Player => {
-            mesh = graphics::Mesh::new_polygon(
-                ctx,
-                graphics::DrawMode::stroke(1.0),
-                &[
-                    na::Point2::new(0.0, -10.0),
-                    na::Point2::new(8.0, 10.0),
-                    na::Point2::new(0.0, 8.0),
-                    na::Point2::new(-8.0, 10.0),
-                ],
-                graphics::WHITE,
-            )
-            .unwrap();
-        }
-        ActorType::Rock => {
-            mesh = graphics::Mesh::new_polygon(
-                ctx,
-                graphics::DrawMode::stroke(1.0),
-                &[
-                    na::Point2::new(0.0, -10.0),
-                    na::Point2::new(8.0, -2.0),
-                    na::Point2::new(5.0, 10.0),
-                    na::Point2::new(-5.0, 10.0),
-                    na::Point2::new(-8.0, -2.0),
-                ],
-                graphics::WHITE,
-            )
-            .unwrap();
-        }
-        ActorType::Shot => {
-            mesh = graphics::Mesh::new_polygon(
-                ctx,
-                graphics::DrawMode::stroke(1.0),
-                &[
-                    na::Point2::new(0.0, -5.0),
-                    na::Point2::new(4.0, -1.0),
-                    na::Point2::new(2.5, 5.0),
-                    na::Point2::new(-2.5, 5.0),
-                    na::Point2::new(-4.0, -1.0),
-                ],
-                graphics::WHITE,
-            )
-            .unwrap();
-        }
-    }
+    let mesh = actor.polygon(ctx);
 
     graphics::draw(ctx, &mesh, drawparams)
 }
