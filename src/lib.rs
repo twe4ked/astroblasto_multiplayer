@@ -160,6 +160,11 @@ impl Default for InputState {
     }
 }
 
+enum State {
+    Instructions,
+    Playing,
+}
+
 /// Now we're getting into the actual game loop. The `MainState` is our game's "global" state, it
 /// keeps track of everything we need for actually running the game.
 ///
@@ -177,12 +182,12 @@ pub struct MainState {
     screen_height: f32,
     input: InputState,
     player_shot_timeout: f32,
+    state: State,
+    instructions: f32,
 }
 
 impl MainState {
     pub fn new(ctx: &mut Context) -> GameResult<MainState> {
-        print_instructions();
-
         let assets = Assets::new(ctx)?;
         let player = Actor::create_player();
         let rocks = create_rocks(5, player.pos, 100.0, 250.0);
@@ -198,6 +203,8 @@ impl MainState {
             screen_height: ctx.conf.window_mode.height,
             input: InputState::default(),
             player_shot_timeout: 0.0,
+            instructions: 3.0,
+            state: State::Instructions,
         };
 
         Ok(s)
@@ -271,12 +278,22 @@ impl MainState {
 
         Ok(())
     }
-}
 
-fn print_instructions() {
-    println!("Welcome to ASTROBLASTO!");
-    println!("How to play:");
-    println!("L/R arrow keys rotate your ship, up thrusts, space bar fires");
+    fn draw_instructions(&self, ctx: &mut Context) -> GameResult {
+        let instructions = graphics::Text::new((
+            String::from("Welcome to ASTROBLASTO!\nHow to play:\nL/R arrow keys rotate your ship,\nup thrusts, space bar fires"),
+            self.assets.font,
+            32.0,
+        ));
+
+        graphics::draw(
+            ctx,
+            &instructions,
+            (Point2::new(10.0, 10.0), 0.0, graphics::WHITE),
+        )?;
+
+        Ok(())
+    }
 }
 
 /// Now we implement the `EventHandler` trait from `ggez::event`, which provides ggez with
@@ -287,6 +304,13 @@ impl EventHandler for MainState {
 
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let seconds = 1.0 / (DESIRED_FPS as f32);
+
+            if self.instructions >= 0.0 {
+                self.instructions -= seconds;
+                return Ok(());
+            } else {
+                self.state = State::Playing;
+            }
 
             // Update the player state based on the user input.
             player_handle_input(&mut self.player, &self.input, seconds);
@@ -336,23 +360,28 @@ impl EventHandler for MainState {
         // Clear the screen...
         graphics::clear(ctx, graphics::BLACK);
 
-        // Loop over all objects drawing them.
-        {
-            let coords = (self.screen_width, self.screen_height);
-
-            let p = &self.player;
-            p.draw_actor(ctx, coords)?;
-
-            for s in &self.shots {
-                s.draw_actor(ctx, coords)?;
+        match self.state {
+            State::Instructions => {
+                self.draw_instructions(ctx)?;
             }
+            State::Playing => {
+                // Loop over all objects drawing them.
+                let coords = (self.screen_width, self.screen_height);
 
-            for r in &self.rocks {
-                r.draw_actor(ctx, coords)?;
+                let p = &self.player;
+                p.draw_actor(ctx, coords)?;
+
+                for s in &self.shots {
+                    s.draw_actor(ctx, coords)?;
+                }
+
+                for r in &self.rocks {
+                    r.draw_actor(ctx, coords)?;
+                }
+
+                self.draw_ui(ctx)?;
             }
         }
-
-        self.draw_ui(ctx)?;
 
         // Then we flip the screen.
         graphics::present(ctx)?;
