@@ -305,51 +305,63 @@ impl EventHandler for MainState {
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let seconds = 1.0 / (DESIRED_FPS as f32);
 
-            if self.instructions >= 0.0 {
-                self.instructions -= seconds;
-                return Ok(());
-            } else {
-                self.state = State::Playing;
-            }
+            match self.state {
+                State::Instructions => {
+                    if self.instructions >= 0.0 {
+                        self.instructions -= seconds;
+                    } else {
+                        self.state = State::Playing;
+                    }
+                }
+                State::Playing => {
+                    // Update the player state based on the user input.
+                    player_handle_input(&mut self.player, &self.input, seconds);
+                    self.player_shot_timeout -= seconds;
+                    if self.input.fire && self.player_shot_timeout < 0.0 {
+                        self.fire_player_shot();
+                    }
 
-            // Update the player state based on the user input.
-            player_handle_input(&mut self.player, &self.input, seconds);
-            self.player_shot_timeout -= seconds;
-            if self.input.fire && self.player_shot_timeout < 0.0 {
-                self.fire_player_shot();
-            }
+                    // Update the physics for all actors.
+                    update_actor_position(&mut self.player, seconds);
+                    wrap_actor_position(
+                        &mut self.player,
+                        self.screen_width as f32,
+                        self.screen_height as f32,
+                    );
 
-            // Update the physics for all actors.
-            update_actor_position(&mut self.player, seconds);
-            wrap_actor_position(
-                &mut self.player,
-                self.screen_width as f32,
-                self.screen_height as f32,
-            );
+                    for act in &mut self.shots {
+                        update_actor_position(act, seconds);
+                        wrap_actor_position(
+                            act,
+                            self.screen_width as f32,
+                            self.screen_height as f32,
+                        );
+                        handle_timed_life(act, seconds);
+                    }
 
-            for act in &mut self.shots {
-                update_actor_position(act, seconds);
-                wrap_actor_position(act, self.screen_width as f32, self.screen_height as f32);
-                handle_timed_life(act, seconds);
-            }
+                    for act in &mut self.rocks {
+                        update_actor_position(act, seconds);
+                        wrap_actor_position(
+                            act,
+                            self.screen_width as f32,
+                            self.screen_height as f32,
+                        );
+                    }
 
-            for act in &mut self.rocks {
-                update_actor_position(act, seconds);
-                wrap_actor_position(act, self.screen_width as f32, self.screen_height as f32);
-            }
+                    // Handle the results of things moving:
+                    //
+                    // collision detection, object death, and if we have killed all the rocks in
+                    // the level, spawn more of them.
+                    self.handle_collisions();
+                    self.clear_dead_stuff();
+                    self.check_for_level_respawn();
 
-            // Handle the results of things moving:
-            //
-            // collision detection, object death, and if we have killed all the rocks in the level,
-            // spawn more of them.
-            self.handle_collisions();
-            self.clear_dead_stuff();
-            self.check_for_level_respawn();
-
-            // Finally we check for our end state.
-            if self.player.life <= 0.0 {
-                println!("Game over!");
-                let _ = ggez::quit(ctx);
+                    // Finally we check for our end state.
+                    if self.player.life <= 0.0 {
+                        println!("Game over!");
+                        let _ = ggez::quit(ctx);
+                    }
+                }
             }
         }
 
