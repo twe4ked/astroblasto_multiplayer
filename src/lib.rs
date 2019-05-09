@@ -426,7 +426,7 @@ impl EventHandler for MainState {
         }
     }
 
-    fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, _keymod: KeyMods) {
+    fn key_up_event(&mut self, ctx: &mut Context, keycode: KeyCode, _keymod: KeyMods) {
         match keycode {
             KeyCode::Up => {
                 self.input.yaxis = 0.0;
@@ -436,6 +436,9 @@ impl EventHandler for MainState {
             }
             KeyCode::Space => {
                 self.input.fire = false;
+            }
+            KeyCode::Q => {
+                let _ = ggez::quit(ctx);
             }
             _ => (),
         }
