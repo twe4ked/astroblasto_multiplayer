@@ -163,6 +163,7 @@ impl Default for InputState {
 enum State {
     Instructions,
     Playing,
+    Dead,
 }
 
 /// Now we're getting into the actual game loop. The `MainState` is our game's "global" state, it
@@ -183,7 +184,7 @@ pub struct MainState {
     input: InputState,
     player_shot_timeout: f32,
     state: State,
-    instructions: f32,
+    state_transition: f32,
 }
 
 impl MainState {
@@ -203,11 +204,23 @@ impl MainState {
             screen_height: ctx.conf.window_mode.height,
             input: InputState::default(),
             player_shot_timeout: 0.0,
-            instructions: 3.0,
+            state_transition: 3.0,
             state: State::Instructions,
         };
 
         Ok(s)
+    }
+
+    fn reset_state(&mut self) {
+        let player = Actor::create_player();
+        let rocks = create_rocks(5, player.pos, 100.0, 250.0);
+
+        self.player = player;
+        self.shots = Vec::new();
+        self.rocks = rocks;
+        self.level = 0;
+        self.score = 0;
+        self.player_shot_timeout = 0.0;
     }
 
     fn fire_player_shot(&mut self) {
@@ -294,6 +307,12 @@ impl MainState {
 
         Ok(())
     }
+
+    fn draw_death_screen(&self, ctx: &mut Context) -> GameResult {
+        let text = graphics::Text::new((String::from("You died!"), self.assets.font, 32.0));
+        graphics::draw(ctx, &text, (Point2::new(10.0, 10.0), 0.0, graphics::WHITE))?;
+        Ok(())
+    }
 }
 
 /// Now we implement the `EventHandler` trait from `ggez::event`, which provides ggez with
@@ -307,8 +326,8 @@ impl EventHandler for MainState {
 
             match self.state {
                 State::Instructions => {
-                    if self.instructions >= 0.0 {
-                        self.instructions -= seconds;
+                    if self.state_transition >= 0.0 {
+                        self.state_transition -= seconds;
                     } else {
                         self.state = State::Playing;
                     }
@@ -358,8 +377,16 @@ impl EventHandler for MainState {
 
                     // Finally we check for our end state.
                     if self.player.life <= 0.0 {
-                        println!("Game over!");
-                        let _ = ggez::quit(ctx);
+                        self.state = State::Dead;
+                        self.state_transition = 3.0;
+                        self.reset_state();
+                    }
+                }
+                State::Dead => {
+                    if self.state_transition >= 0.0 {
+                        self.state_transition -= seconds;
+                    } else {
+                        self.state = State::Playing;
                     }
                 }
             }
@@ -392,6 +419,9 @@ impl EventHandler for MainState {
                 }
 
                 self.draw_ui(ctx)?;
+            }
+            State::Dead => {
+                self.draw_death_screen(ctx)?;
             }
         }
 
