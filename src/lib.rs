@@ -125,7 +125,7 @@ struct Assets {
 
 impl Assets {
     fn new(ctx: &mut Context) -> GameResult<Assets> {
-        let font = graphics::Font::new(ctx, "/DejaVuSansMono.ttf")?;
+        let font = graphics::Font::new(ctx, "/manaspc.ttf")?;
 
         let mut shot_sound = audio::SpatialSource::new(ctx, "/pew.ogg")?;
         let mut hit_sound = audio::SpatialSource::new(ctx, "/boom.ogg")?;
@@ -204,7 +204,7 @@ impl MainState {
             screen_height: ctx.conf.window_mode.height,
             input: InputState::default(),
             player_shot_timeout: 0.0,
-            state_transition: 3.0,
+            state_transition: 5.0,
             state: State::Instructions,
         };
 
@@ -277,14 +277,16 @@ impl MainState {
     }
 
     fn draw_ui(&mut self, ctx: &mut Context) -> GameResult {
-        let level_dest = Point2::new(10.0, 10.0);
-        let score_dest = Point2::new(200.0, 10.0);
+        let level_dest = Point2::new(self.scaled_size(10.0), self.scaled_size(10.0));
+        let score_dest = Point2::new(self.scaled_size(140.0), self.scaled_size(10.0));
 
         let level_str = format!("Level: {}", self.level);
         let score_str = format!("Score: {}", self.score);
 
-        let level_display = graphics::Text::new((level_str, self.assets.font, 32.0));
-        let score_display = graphics::Text::new((score_str, self.assets.font, 32.0));
+        let level_display =
+            graphics::Text::new((level_str, self.assets.font, self.scaled_size(20.0)));
+        let score_display =
+            graphics::Text::new((score_str, self.assets.font, self.scaled_size(20.0)));
 
         graphics::draw(ctx, &level_display, (level_dest, 0.0, graphics::WHITE))?;
         graphics::draw(ctx, &score_display, (score_dest, 0.0, graphics::WHITE))?;
@@ -294,15 +296,15 @@ impl MainState {
 
     fn draw_instructions(&self, ctx: &mut Context) -> GameResult {
         let instructions = graphics::Text::new((
-            String::from("Welcome to ASTROBLASTO!\nHow to play:\nL/R arrow keys rotate your ship,\nup thrusts, space bar fires"),
+            String::from("\n   !!! Welcome to ASTROBLASTO!!!\n\n\nHow to play:\nL/R arrow keys rotate your ship,\nup thrusts, space bar fires"),
             self.assets.font,
-            32.0,
+            self.scaled_size(32.0),
         ));
 
         graphics::draw(
             ctx,
             &instructions,
-            (Point2::new(10.0, 10.0), 0.0, graphics::WHITE),
+            (Point2::new(50.0, 50.0), 0.0, graphics::WHITE),
         )?;
 
         Ok(())
@@ -312,6 +314,15 @@ impl MainState {
         let text = graphics::Text::new((String::from("You died!"), self.assets.font, 32.0));
         graphics::draw(ctx, &text, (Point2::new(10.0, 10.0), 0.0, graphics::WHITE))?;
         Ok(())
+    }
+
+    /// Takes a given size and scales it based on the window dimensions
+    fn scaled_size(&self, size: f32) -> f32 {
+        if self.screen_width > 800.0 {
+            size * 2.0
+        } else {
+            size
+        }
     }
 }
 
@@ -383,7 +394,7 @@ impl EventHandler for MainState {
                     // Finally we check for our end state.
                     if self.player.life <= 0.0 {
                         self.state = State::Dead;
-                        self.state_transition = 3.0;
+                        self.state_transition = 5.0;
                         self.reset_state();
                     }
                 }
@@ -402,7 +413,7 @@ impl EventHandler for MainState {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         // Clear the screen...
-        graphics::clear(ctx, graphics::Color::new(0.1, 0.1, 0.1, 1.0));
+        graphics::clear(ctx, graphics::Color::new(0.0, 0.015, 0.1, 1.0));
 
         match self.state {
             State::Instructions => {
