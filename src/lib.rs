@@ -233,9 +233,10 @@ impl MainState {
         let mut shot = Actor::create_shot();
         shot.pos = player.pos;
         shot.facing = player.facing;
+        shot.velocity = player.velocity;
         let direction = vec_from_angle(shot.facing);
-        shot.velocity.x = SHOT_SPEED * direction.x;
-        shot.velocity.y = SHOT_SPEED * direction.y;
+        shot.velocity.x += SHOT_SPEED * direction.x;
+        shot.velocity.y += SHOT_SPEED * direction.y;
 
         self.shots.push(shot);
 
