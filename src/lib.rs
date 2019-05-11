@@ -331,6 +331,11 @@ impl EventHandler for MainState {
                     } else {
                         self.state = State::Playing;
                     }
+
+                    if self.input.fire {
+                        self.state = State::Playing;
+                        self.input.fire = false;
+                    }
                 }
                 State::Playing => {
                     // Update the player state based on the user input.
