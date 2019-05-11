@@ -322,12 +322,12 @@ impl EventHandler for MainState {
         const DESIRED_FPS: u32 = 60;
 
         while timer::check_update_time(ctx, DESIRED_FPS) {
-            let seconds = 1.0 / (DESIRED_FPS as f32);
+            let delta = 1.0 / (DESIRED_FPS as f32);
 
             match self.state {
                 State::Instructions => {
                     if self.state_transition >= 0.0 {
-                        self.state_transition -= seconds;
+                        self.state_transition -= delta;
                     } else {
                         self.state = State::Playing;
                     }
@@ -339,14 +339,14 @@ impl EventHandler for MainState {
                 }
                 State::Playing => {
                     // Update the player state based on the user input.
-                    player_handle_input(&mut self.player, &self.input, seconds);
-                    self.player_shot_timeout -= seconds;
+                    player_handle_input(&mut self.player, &self.input, delta);
+                    self.player_shot_timeout -= delta;
                     if self.input.fire && self.player_shot_timeout < 0.0 {
                         self.fire_player_shot();
                     }
 
                     // Update the physics for all actors.
-                    update_actor_position(&mut self.player, seconds);
+                    update_actor_position(&mut self.player, delta);
                     wrap_actor_position(
                         &mut self.player,
                         self.screen_width as f32,
@@ -354,17 +354,17 @@ impl EventHandler for MainState {
                     );
 
                     for act in &mut self.shots {
-                        update_actor_position(act, seconds);
+                        update_actor_position(act, delta);
                         wrap_actor_position(
                             act,
                             self.screen_width as f32,
                             self.screen_height as f32,
                         );
-                        handle_timed_life(act, seconds);
+                        handle_timed_life(act, delta);
                     }
 
                     for act in &mut self.rocks {
-                        update_actor_position(act, seconds);
+                        update_actor_position(act, delta);
                         wrap_actor_position(
                             act,
                             self.screen_width as f32,
@@ -389,7 +389,7 @@ impl EventHandler for MainState {
                 }
                 State::Dead => {
                     if self.state_transition >= 0.0 {
-                        self.state_transition -= seconds;
+                        self.state_transition -= delta;
                     } else {
                         self.state = State::Playing;
                     }
