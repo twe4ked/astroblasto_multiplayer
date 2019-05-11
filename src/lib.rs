@@ -402,7 +402,7 @@ impl EventHandler for MainState {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         // Clear the screen...
-        graphics::clear(ctx, graphics::BLACK);
+        graphics::clear(ctx, graphics::Color::new(0.1, 0.1, 0.1, 1.0));
 
         match self.state {
             State::Instructions => {
