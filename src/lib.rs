@@ -188,13 +188,14 @@ pub struct MainState {
     player_shot_timeout: f32,
     state: State,
     state_transition: f32,
+    hidpi_factor: f32,
 }
 
 impl MainState {
-    pub fn new(ctx: &mut Context) -> GameResult<MainState> {
+    pub fn new(ctx: &mut Context, hidpi_factor: f32) -> GameResult<MainState> {
         let assets = Assets::new(ctx)?;
         let player = Actor::create_player();
-        let rocks = create_rocks(5, player.pos, 100.0, 250.0);
+        let rocks = create_rocks(5, player.pos, 100.0 * hidpi_factor, 250.0 * hidpi_factor);
 
         let s = MainState {
             player,
@@ -209,6 +210,7 @@ impl MainState {
             player_shot_timeout: 0.0,
             state_transition: 5.0,
             state: State::Instructions,
+            hidpi_factor,
         };
 
         Ok(s)
@@ -429,14 +431,14 @@ impl EventHandler for MainState {
                 let coords = (self.screen_width, self.screen_height);
 
                 let p = &self.player;
-                p.draw_actor(ctx, coords)?;
+                p.draw_actor(ctx, coords, self.hidpi_factor)?;
 
                 for s in &self.shots {
-                    s.draw_actor(ctx, coords)?;
+                    s.draw_actor(ctx, coords, self.hidpi_factor)?;
                 }
 
                 for r in &self.rocks {
-                    r.draw_actor(ctx, coords)?;
+                    r.draw_actor(ctx, coords, self.hidpi_factor)?;
                 }
 
                 self.draw_ui(ctx)?;

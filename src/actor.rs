@@ -115,12 +115,18 @@ impl Actor {
         }
     }
 
-    pub fn draw_actor(&self, ctx: &mut Context, world_coords: (f32, f32)) -> GameResult {
+    pub fn draw_actor(
+        &self,
+        ctx: &mut Context,
+        world_coords: (f32, f32),
+        hidpi_factor: f32,
+    ) -> GameResult {
         let (screen_w, screen_h) = world_coords;
         let pos = Self::world_to_screen_coords(screen_w, screen_h, self.pos);
         let drawparams = graphics::DrawParam::new()
             .dest(pos)
             .rotation(self.facing as f32)
+            .scale(Vector2::new(hidpi_factor, hidpi_factor))
             .offset(Point2::new(0.5, 0.5));
         let mesh = self.polygon(ctx);
 

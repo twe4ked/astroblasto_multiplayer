@@ -34,6 +34,6 @@ fn main() -> GameResult {
 
     let (ctx, events_loop) = &mut cb.build()?;
 
-    let game = &mut MainState::new(ctx)?;
+    let game = &mut MainState::new(ctx, hidpi_factor)?;
     event::run(ctx, events_loop, game)
 }
