@@ -72,17 +72,20 @@ fn player_thrust(actor: &mut Actor, dt: f32) {
     actor.velocity += thrust_vector * (dt);
 }
 
+fn update_actor_position(actor: &mut Actor, dt: f32) {
+    let dv = actor.velocity * (dt);
+    actor.pos += dv;
+    actor.facing += actor.ang_vel;
+}
+
 const MAX_PHYSICS_VEL: f32 = 250.0;
 
-fn update_actor_position(actor: &mut Actor, dt: f32) {
-    // Clamp the velocity to the max efficiently.
+fn clamp_actor_velocity(actor: &mut Actor) {
+    // Make sure players can't go too fast to get hectic.
     let norm_sq = actor.velocity.norm_squared();
     if norm_sq > MAX_PHYSICS_VEL.powi(2) {
         actor.velocity = actor.velocity / norm_sq.sqrt() * MAX_PHYSICS_VEL;
     }
-    let dv = actor.velocity * (dt);
-    actor.pos += dv;
-    actor.facing += actor.ang_vel;
 }
 
 /// Takes an actor and wraps its position to the bounds of the screen, so if it goes off the left
@@ -358,6 +361,7 @@ impl EventHandler for MainState {
 
                     // Update the physics for all actors.
                     update_actor_position(&mut self.player, delta);
+                    clamp_actor_velocity(&mut self.player);
                     wrap_actor_position(
                         &mut self.player,
                         self.screen_width as f32,
