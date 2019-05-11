@@ -6,6 +6,7 @@ use ggez::{
     event::{EventHandler, KeyCode, KeyMods},
     graphics, nalgebra as na, timer, Context, GameResult,
 };
+use std::sync::mpsc;
 
 pub type Point2 = na::Point2<f32>;
 pub type Vector2 = na::Vector2<f32>;
@@ -188,10 +189,16 @@ pub struct MainState {
     player_shot_timeout: f32,
     state: State,
     state_transition: f32,
+    tx: futures::sync::mpsc::UnboundedSender<String>,
+    rx: mpsc::Receiver<String>,
 }
 
 impl MainState {
-    pub fn new(ctx: &mut Context) -> GameResult<MainState> {
+    pub fn new(
+        ctx: &mut Context,
+        tx: futures::sync::mpsc::UnboundedSender<String>,
+        rx: std::sync::mpsc::Receiver<String>,
+    ) -> GameResult<MainState> {
         let assets = Assets::new(ctx)?;
         let player = Actor::create_player();
         let rocks = create_rocks(5, player.pos, 100.0, 250.0);
@@ -209,6 +216,8 @@ impl MainState {
             player_shot_timeout: 0.0,
             state_transition: 5.0,
             state: State::Instructions,
+            tx,
+            rx,
         };
 
         Ok(s)
@@ -339,6 +348,14 @@ impl EventHandler for MainState {
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let delta = 1.0 / (DESIRED_FPS as f32);
 
+            // Receive any new data, non blocking
+            match self.rx.try_recv() {
+                Ok(value) => {
+                    dbg!(value);
+                }
+                _ => {}
+            }
+
             match self.state {
                 State::Instructions => {
                     if self.state_transition >= 0.0 {
@@ -411,6 +428,12 @@ impl EventHandler for MainState {
                     }
                 }
             }
+
+            // Send the current state, other more specific state sends
+            // should happen in the above `match`.
+            self.tx
+                .unbounded_send("x".to_string())
+                .expect("unable to send");
         }
 
         Ok(())

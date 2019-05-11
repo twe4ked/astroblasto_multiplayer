@@ -2,9 +2,64 @@
 //! The idea is that this game is simple but still
 //! non-trivial enough to be interesting.
 use astroblasto_multiplayer::MainState;
+use futures::sync::mpsc::unbounded;
 use ggez::{conf, event, ContextBuilder, GameResult};
-use std::env;
-use std::path;
+use std::{
+    env,
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+    path,
+    sync::mpsc::channel,
+};
+use tokio::net::{UdpFramed, UdpSocket};
+use tokio::prelude::*;
+use tokio_codec::LinesCodec;
+
+// use tokio_codec::{Decoder, Encoder};
+// use tokio_codec::BytesCodec;
+//
+// struct Codec;
+//
+// impl UdpCodec for Codec {
+//     type In = (SocketAddr, Vec<u8>);
+//     type Out = (SocketAddr, Vec<u8>);
+//
+//     fn decode(&mut self, src: &SocketAddr, buf: &[u8]) -> std::io::Result<Self::In> {
+//         Ok((*src, buf.to_vec()))
+//     }
+//
+//     fn encode(&mut self, msg: Self::Out, buf: &mut Vec<u8>) -> SocketAddr {
+//         let (addr, mut data) = msg;
+//         buf.append(&mut data);
+//         addr
+//     }
+// }
+//
+// impl Decoder for Codec {
+//     //
+// }
+//
+// impl Encoder for Codec {
+//     //
+// }
+
+const DEFAULT_MULTICAST: &'static str = "239.255.42.98";
+const IP_ALL: [u8; 4] = [0, 0, 0, 0];
+
+fn bind_multicast(
+    addr: &SocketAddrV4,
+    multi: &SocketAddrV4,
+) -> Result<std::net::UdpSocket, std::io::Error> {
+    use socket2::{Domain, Protocol, Socket, Type};
+
+    let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
+
+    socket.set_reuse_address(true)?;
+    socket.bind(&socket2::SockAddr::from(*addr))?;
+    socket.set_multicast_loop_v4(true)?;
+    socket.join_multicast_v4(multi.ip(), addr.ip())?;
+
+    Ok(socket.into_udp_socket())
+}
 
 fn main() -> GameResult {
     // We add the CARGO_MANIFEST_DIR/resources to the resource paths so that ggez will look in our
@@ -32,8 +87,48 @@ fn main() -> GameResult {
         )
         .add_resource_path(resource_dir);
 
+    let port = 1234;
+    let addr = SocketAddrV4::new(IP_ALL.into(), port);
+    let maddr = SocketAddrV4::new(
+        DEFAULT_MULTICAST.parse::<Ipv4Addr>().expect("Invalid IP"),
+        port,
+    );
+
+    assert!(maddr.ip().is_multicast(), "Must be multcast address");
+
+    println!("Starting server on: {}", addr);
+    println!("Multicast address: {}\n", maddr);
+
+    let std_socket = bind_multicast(&addr, &maddr).expect("Failed to bind multicast socket");
+
+    let socket = UdpSocket::from_std(std_socket, &tokio::reactor::Handle::default()).unwrap();
+
+    let framed = UdpFramed::new(socket, LinesCodec::new());
+    let (udp_tx, udp_rx) = Stream::split(framed);
+    let (chn_tx, chn_rx) = unbounded::<String>();
+
+    let send = chn_rx
+        .map(move |s| (s, SocketAddr::from(maddr)))
+        .forward(udp_tx.sink_map_err(|e| println!("Error receiving UDP packet: {:?}", e)))
+        .map(|_| ());
+
+    let (tx, rx) = channel();
+
+    let recv = udp_rx
+        .for_each(move |(s, x)| {
+            tx.send(format!("{} - {}", s, x)).unwrap();
+            Ok(())
+        })
+        .map_err(|e| println!("Error sending UDP packet: {:?}", e));
+
+    let serve = send.select(recv).map(|_| ()).map_err(|_| ());
+
+    std::thread::spawn(move || {
+        tokio::run(serve);
+    });
+
     let (ctx, events_loop) = &mut cb.build()?;
 
-    let game = &mut MainState::new(ctx)?;
+    let game = &mut MainState::new(ctx, chn_tx, rx)?;
     event::run(ctx, events_loop, game)
 }
