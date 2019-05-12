@@ -29,6 +29,7 @@ pub struct Actor {
     pub velocity: Vector2,
     pub ang_vel: f32,
     pub bbox_size: f32,
+    pub owner: String,
 
     // Lazily overload "life" with a double meaning: for shots, it is the time left to live, for
     // players and rocks, it is the actual hit points.
@@ -36,50 +37,32 @@ pub struct Actor {
 }
 
 impl Actor {
-    pub fn polygon(&self, ctx: &mut Context) -> graphics::Mesh {
+    pub fn polygon(&self) -> Vec<na::Point2<f32>> {
         match self.tag {
-            ActorType::Player => graphics::Mesh::new_polygon(
-                ctx,
-                graphics::DrawMode::stroke(1.0),
-                &[
-                    na::Point2::new(0.0, -10.0),
-                    na::Point2::new(8.0, 10.0),
-                    na::Point2::new(0.0, 8.0),
-                    na::Point2::new(-8.0, 10.0),
-                ],
-                graphics::WHITE,
-            )
-            .unwrap(),
-            ActorType::Rock => graphics::Mesh::new_polygon(
-                ctx,
-                graphics::DrawMode::stroke(1.0),
-                &[
-                    na::Point2::new(0.0, -10.0),
-                    na::Point2::new(8.0, -2.0),
-                    na::Point2::new(5.0, 10.0),
-                    na::Point2::new(-5.0, 10.0),
-                    na::Point2::new(-8.0, -2.0),
-                ],
-                graphics::WHITE,
-            )
-            .unwrap(),
-            ActorType::Shot => graphics::Mesh::new_polygon(
-                ctx,
-                graphics::DrawMode::stroke(1.0),
-                &[
-                    na::Point2::new(0.0, -5.0),
-                    na::Point2::new(4.0, -1.0),
-                    na::Point2::new(2.5, 5.0),
-                    na::Point2::new(-2.5, 5.0),
-                    na::Point2::new(-4.0, -1.0),
-                ],
-                graphics::WHITE,
-            )
-            .unwrap(),
+            ActorType::Player => vec![
+                na::Point2::new(0.0, -10.0),
+                na::Point2::new(8.0, 10.0),
+                na::Point2::new(0.0, 8.0),
+                na::Point2::new(-8.0, 10.0),
+            ],
+            ActorType::Rock => vec![
+                na::Point2::new(0.0, -10.0),
+                na::Point2::new(8.0, -2.0),
+                na::Point2::new(5.0, 10.0),
+                na::Point2::new(-5.0, 10.0),
+                na::Point2::new(-8.0, -2.0),
+            ],
+            ActorType::Shot => vec![
+                na::Point2::new(0.0, -5.0),
+                na::Point2::new(4.0, -1.0),
+                na::Point2::new(2.5, 5.0),
+                na::Point2::new(-2.5, 5.0),
+                na::Point2::new(-4.0, -1.0),
+            ],
         }
     }
 
-    pub fn create_player() -> Self {
+    pub fn create_player(owner: String) -> Self {
         Self {
             tag: ActorType::Player,
             pos: Point2::origin(),
@@ -88,10 +71,11 @@ impl Actor {
             ang_vel: 0.,
             bbox_size: PLAYER_BBOX,
             life: PLAYER_LIFE,
+            owner,
         }
     }
 
-    pub fn create_rock() -> Self {
+    pub fn create_rock(owner: String) -> Self {
         Self {
             tag: ActorType::Rock,
             pos: Point2::origin(),
@@ -100,10 +84,11 @@ impl Actor {
             ang_vel: 0.,
             bbox_size: ROCK_BBOX,
             life: ROCK_LIFE,
+            owner,
         }
     }
 
-    pub fn create_shot() -> Self {
+    pub fn create_shot(owner: String) -> Self {
         Self {
             tag: ActorType::Shot,
             pos: Point2::origin(),
@@ -112,6 +97,7 @@ impl Actor {
             ang_vel: SHOT_ANG_VEL,
             bbox_size: SHOT_BBOX,
             life: SHOT_LIFE,
+            owner,
         }
     }
 
@@ -120,6 +106,7 @@ impl Actor {
         ctx: &mut Context,
         world_coords: (f32, f32),
         hidpi_factor: f32,
+        color: graphics::Color,
     ) -> GameResult {
         let (screen_w, screen_h) = world_coords;
         let pos = Self::world_to_screen_coords(screen_w, screen_h, self.pos);
@@ -128,8 +115,14 @@ impl Actor {
             .rotation(self.facing as f32)
             .scale(Vector2::new(hidpi_factor, hidpi_factor))
             .offset(Point2::new(0.5, 0.5));
-        let mesh = self.polygon(ctx);
 
+        let mesh = graphics::Mesh::new_polygon(
+            ctx,
+            graphics::DrawMode::stroke(1.0),
+            &self.polygon(),
+            color,
+        )
+        .expect("could not create polygon");
         graphics::draw(ctx, &mesh, drawparams)
     }
 

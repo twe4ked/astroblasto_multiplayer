@@ -36,7 +36,7 @@ const MAX_ROCK_VEL: f32 = 50.0;
 fn create_rocks(num: i32, exclusion: Point2, min_radius: f32, max_radius: f32) -> Vec<Actor> {
     assert!(max_radius > min_radius);
     let new_rock = |_| {
-        let mut rock = Actor::create_rock();
+        let mut rock = Actor::create_rock("self".to_string());
         let r_angle = rand::random::<f32>() * 2.0 * std::f32::consts::PI;
         let r_distance = rand::random::<f32>() * (max_radius - min_radius) + min_radius;
         rock.pos = exclusion + vec_from_angle(r_angle) * r_distance;
@@ -181,6 +181,7 @@ enum State {
 /// this small it hardly matters.
 pub struct MainState {
     player: Actor,
+    other_players: HashMap<String, Actor>,
     shots: Vec<Actor>,
     rocks: Vec<Actor>,
     level: i32,
@@ -205,11 +206,12 @@ impl MainState {
         hidpi_factor: f32,
     ) -> GameResult<MainState> {
         let assets = Assets::new(ctx)?;
-        let player = Actor::create_player();
+        let player = Actor::create_player("self".to_string());
         let rocks = create_rocks(5, player.pos, 100.0 * hidpi_factor, 250.0 * hidpi_factor);
 
         let s = MainState {
             player,
+            other_players: HashMap::new(),
             shots: Vec::new(),
             rocks,
             level: 0,
@@ -230,7 +232,7 @@ impl MainState {
     }
 
     fn reset_state(&mut self) {
-        let player = Actor::create_player();
+        let player = Actor::create_player("self".to_string());
         let rocks = create_rocks(5, player.pos, 100.0, 250.0);
 
         self.player = player;
@@ -245,7 +247,7 @@ impl MainState {
         self.player_shot_timeout = PLAYER_SHOT_TIME;
 
         let player = &self.player;
-        let mut shot = Actor::create_shot();
+        let mut shot = Actor::create_shot("self".to_string());
         shot.pos = player.pos;
         shot.facing = player.facing;
         shot.velocity = player.velocity;
@@ -354,10 +356,30 @@ impl EventHandler for MainState {
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let delta = 1.0 / (DESIRED_FPS as f32);
 
-            // Receive any new data, non blocking
             match self.rx.try_recv() {
-                Ok(value) => {
-                    dbg!(value);
+                Ok(map) => {
+                    let ip = map
+                        .keys()
+                        .find(|&k| k.starts_with("ip-"))
+                        .expect("no ip key")
+                        .to_string();
+
+                    // Player
+                    if map[&"tag".to_string()] == 1.0 {
+                        let other_player = self
+                            .other_players
+                            .entry(ip.clone())
+                            .or_insert(Actor::create_player(ip));
+
+                        other_player.pos.x = map[&"pos_x".to_string()] as f32;
+                        other_player.pos.y = map[&"pos_y".to_string()] as f32;
+                        other_player.facing = map[&"facing".to_string()] as f32;
+                        other_player.velocity.x = map[&"velocity_x".to_string()] as f32;
+                        other_player.velocity.y = map[&"velocity_y".to_string()] as f32;
+                        other_player.ang_vel = map[&"ang_vel".to_string()] as f32;
+                    } else {
+                        unreachable!();
+                    }
                 }
                 _ => {}
             }
@@ -436,8 +458,13 @@ impl EventHandler for MainState {
             }
 
             let mut map: HashMap<String, f64> = HashMap::new();
-            map.insert("x".to_string(), self.player.pos.x.into());
-            map.insert("y".to_string(), self.player.pos.y.into());
+            map.insert("pos_x".to_string(), self.player.pos.x.into());
+            map.insert("pos_y".to_string(), self.player.pos.y.into());
+            map.insert("facing".to_string(), self.player.facing.into());
+            map.insert("velocity_x".to_string(), self.player.velocity.x.into());
+            map.insert("velocity_y".to_string(), self.player.velocity.y.into());
+            map.insert("ang_vel".to_string(), self.player.ang_vel.into());
+            map.insert("tag".to_string(), 1.0);
 
             self.tx.unbounded_send(map).expect("unable to send");
         }
@@ -458,14 +485,23 @@ impl EventHandler for MainState {
                 let coords = (self.screen_width, self.screen_height);
 
                 let p = &self.player;
-                p.draw_actor(ctx, coords, self.hidpi_factor)?;
+                p.draw_actor(ctx, coords, self.hidpi_factor, graphics::WHITE)?;
+
+                for (_, p) in &self.other_players {
+                    p.draw_actor(
+                        ctx,
+                        coords,
+                        self.hidpi_factor,
+                        graphics::Color::new(1.0, 0.0, 0.0, 1.0),
+                    )?;
+                }
 
                 for s in &self.shots {
-                    s.draw_actor(ctx, coords, self.hidpi_factor)?;
+                    s.draw_actor(ctx, coords, self.hidpi_factor, graphics::WHITE)?;
                 }
 
                 for r in &self.rocks {
-                    r.draw_actor(ctx, coords, self.hidpi_factor)?;
+                    r.draw_actor(ctx, coords, self.hidpi_factor, graphics::WHITE)?;
                 }
 
                 self.draw_ui(ctx)?;
