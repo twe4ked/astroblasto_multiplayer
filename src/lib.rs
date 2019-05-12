@@ -1,4 +1,5 @@
 mod actor;
+mod hash_map_codec;
 
 use actor::Actor;
 use ggez::{
@@ -6,6 +7,9 @@ use ggez::{
     event::{EventHandler, KeyCode, KeyMods},
     graphics, nalgebra as na, timer, Context, GameResult,
 };
+pub use hash_map_codec::HashMapCodec;
+use std::collections::HashMap;
+use std::sync::mpsc;
 
 pub type Point2 = na::Point2<f32>;
 pub type Vector2 = na::Vector2<f32>;
@@ -189,10 +193,17 @@ pub struct MainState {
     state: State,
     state_transition: f32,
     hidpi_factor: f32,
+    tx: futures::sync::mpsc::UnboundedSender<HashMap<String, f64>>,
+    rx: mpsc::Receiver<HashMap<String, f64>>,
 }
 
 impl MainState {
-    pub fn new(ctx: &mut Context, hidpi_factor: f32) -> GameResult<MainState> {
+    pub fn new(
+        ctx: &mut Context,
+        tx: futures::sync::mpsc::UnboundedSender<HashMap<String, f64>>,
+        rx: std::sync::mpsc::Receiver<HashMap<String, f64>>,
+        hidpi_factor: f32,
+    ) -> GameResult<MainState> {
         let assets = Assets::new(ctx)?;
         let player = Actor::create_player();
         let rocks = create_rocks(5, player.pos, 100.0 * hidpi_factor, 250.0 * hidpi_factor);
@@ -211,6 +222,8 @@ impl MainState {
             state_transition: 5.0,
             state: State::Instructions,
             hidpi_factor,
+            tx,
+            rx,
         };
 
         Ok(s)
@@ -341,6 +354,14 @@ impl EventHandler for MainState {
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let delta = 1.0 / (DESIRED_FPS as f32);
 
+            // Receive any new data, non blocking
+            match self.rx.try_recv() {
+                Ok(value) => {
+                    dbg!(value);
+                }
+                _ => {}
+            }
+
             match self.state {
                 State::Instructions => {
                     if self.state_transition >= 0.0 {
@@ -413,6 +434,12 @@ impl EventHandler for MainState {
                     }
                 }
             }
+
+            let mut map: HashMap<String, f64> = HashMap::new();
+            map.insert("x".to_string(), self.player.pos.x.into());
+            map.insert("y".to_string(), self.player.pos.y.into());
+
+            self.tx.unbounded_send(map).expect("unable to send");
         }
 
         Ok(())
