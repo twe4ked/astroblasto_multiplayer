@@ -88,8 +88,8 @@ fn main() -> GameResult {
     let (tx, rx) = channel();
 
     let recv = udp_rx
-        .for_each(move |(s, ip)| {
-            let mut map = s.clone();
+        .for_each(move |(map, ip)| {
+            let mut map = map.clone();
             map.insert(format!("ip-{}", ip), 0.0);
             tx.send(map).unwrap();
             Ok(())
